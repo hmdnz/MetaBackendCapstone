@@ -1,45 +1,42 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import TableBooking
-from .serializers import TableBookingSerializer
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
+from django.core import serializers
+from rest_framework import generics
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from datetime import datetime
 
+from .serializers import BookingSerializer, MenuSerializer
+from .models import Booking, Menu
 
-class TableBookingList(APIView):
-    def get(self, request):
-        bookings = TableBooking.objects.all()
-        serializer = TableBookingSerializer(bookings, many=True)
-        return Response(serializer.data)
+# 
+# API views
+#
+class MenuItemsView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    queryset = Menu.objects.all()
+    serializer_class = MenuSerializer
 
-    def post(self, request):
-        serializer = TableBookingSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class SingleMenuItemView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Menu.objects.all()
+    serializer_class = MenuSerializer
+    
+class BookingViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    
+    queryset = Booking.objects.all()
+#
+# Page views
+#
+def index(request: HttpRequest) -> HttpResponse:
+    return render(request, 'index.html', {})
 
+def about(request):
+    return render(request, 'about.html')
 
-class TableBookingDetail(APIView):
-    def get_object(self, pk):
-        try:
-            return TableBooking.objects.get(pk=pk)
-        except TableBooking.DoesNotExist:
-            raise Http404
-
-    def get(self, request, pk):
-        booking = self.get_object(pk)
-        serializer = TableBookingSerializer(booking)
-        return Response(serializer.data)
-
-    def put(self, request, pk):
-        booking = self.get_object(pk)
-        serializer = TableBookingSerializer(booking, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        booking = self.get_object(pk)
-        booking.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+def reservations(request:HttpRequest) -> HttpResponse:
+    date = request.GET.get('date',datetime.today().date())
+    bookings = Booking.objects.all()
+    booking_json = serializers.serialize('json', bookings)
+    return render(request, 'reservations.html',{"bookings":booking_json})

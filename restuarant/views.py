@@ -4,6 +4,7 @@ from rest_framework import status
 from .models import TableBooking
 from .serializers import TableBookingSerializer
 
+
 class TableBookingList(APIView):
     def get(self, request):
         bookings = TableBooking.objects.all()
@@ -16,6 +17,7 @@ class TableBookingList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class TableBookingDetail(APIView):
     def get_object(self, pk):
